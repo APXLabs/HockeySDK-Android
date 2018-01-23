@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Looper;
 import android.text.TextUtils;
+import android.util.Log;
 
 import net.hockeyapp.android.Constants;
 
@@ -18,6 +19,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -25,6 +27,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.net.ssl.HttpsURLConnection;
 
 /**
  * <h3>Description</h3>
@@ -148,6 +152,7 @@ public class HttpURLConnectionBuilder {
         URL url = new URL(mUrlString);
         connection = (HttpURLConnection) url.openConnection();
 
+
         connection.setConnectTimeout(mTimeout);
         connection.setReadTimeout(mTimeout);
 
@@ -157,8 +162,19 @@ public class HttpURLConnectionBuilder {
                 connection.setDoOutput(true);
                 long size = mRequestBody != null ? mRequestBody.length() : 0;
                 size += requestBodyDescription != null ? requestBodyDescription.length() : 0;
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.KITKAT) {
                     connection.setFixedLengthStreamingMode(size);
+                } else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.KITKAT) {
+                    if (connection instanceof HttpsURLConnection) {
+                        HttpsURLConnection httpsURLConnection = (HttpsURLConnection)connection;
+                        try {
+                            Field delegate = httpsURLConnection.getClass().getDeclaredField("delegate");
+                            delegate.setAccessible(true);
+                            ((HttpsURLConnection)delegate.get(httpsURLConnection)).setFixedLengthStreamingMode(size);
+                        } catch (Exception e) {
+                            Log.e("HOCKEYAPP", "Failed to set length of stream")
+                        }
+                    }
                 } else {
                     connection.setFixedLengthStreamingMode(Integer.MAX_VALUE);
                 }
