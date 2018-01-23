@@ -3,6 +3,7 @@ package net.hockeyapp.android.utils;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Looper;
 import android.text.TextUtils;
 
@@ -154,6 +155,13 @@ public class HttpURLConnectionBuilder {
             connection.setRequestMethod(mRequestMethod);
             if (!TextUtils.isEmpty(mRequestBody) || mRequestMethod.equalsIgnoreCase("POST") || mRequestMethod.equalsIgnoreCase("PUT")) {
                 connection.setDoOutput(true);
+                long size = mRequestBody != null ? mRequestBody.length() : 0;
+                size += requestBodyDescription != null ? requestBodyDescription.length() : 0;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                    connection.setFixedLengthStreamingMode(size);
+                } else {
+                    connection.setFixedLengthStreamingMode(Integer.MAX_VALUE);
+                }
             }
         }
 
