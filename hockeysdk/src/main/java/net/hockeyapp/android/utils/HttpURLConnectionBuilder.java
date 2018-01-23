@@ -168,6 +168,7 @@ public class HttpURLConnectionBuilder {
                 writer.write(mRequestBody);
             }
             if (requestBodyDescription != null) {
+                writer.write("&description=");
                 pipe(requestBodyDescription, writer, DISK_TO_NETWORK_BUFFER_SIZE);
             }
             writer.flush();
@@ -204,6 +205,9 @@ public class HttpURLConnectionBuilder {
         List<String> protoList = new ArrayList<>();
         for (String key : params.keySet()) {
             String value = params.get(key);
+            if (value.equals("description")) {
+                continue;
+            }
             key = URLEncoder.encode(key, charset);
             value = URLEncoder.encode(value, charset);
             protoList.add(key + "=" + value);
