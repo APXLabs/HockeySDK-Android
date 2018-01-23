@@ -162,22 +162,7 @@ public class HttpURLConnectionBuilder {
                 connection.setDoOutput(true);
                 long size = mRequestBody != null ? mRequestBody.length() : 0;
                 size += requestBodyDescription != null ? requestBodyDescription.length() : 0;
-                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.KITKAT) {
-                    connection.setFixedLengthStreamingMode(size);
-                } else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.KITKAT) {
-                    if (connection instanceof HttpsURLConnection) {
-                        HttpsURLConnection httpsURLConnection = (HttpsURLConnection)connection;
-                        try {
-                            Field delegate = httpsURLConnection.getClass().getDeclaredField("delegate");
-                            delegate.setAccessible(true);
-                            ((HttpsURLConnection)delegate.get(httpsURLConnection)).setFixedLengthStreamingMode(size);
-                        } catch (Exception e) {
-                            Log.e("HOCKEYAPP", "Failed to set length of stream");
-                        }
-                    }
-                } else {
-                    connection.setFixedLengthStreamingMode(Integer.MAX_VALUE);
-                }
+                connection.setChunkedStreamingMode(1024);
             }
         }
 
