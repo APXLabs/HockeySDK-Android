@@ -192,10 +192,11 @@ public class HttpURLConnectionBuilder {
         HockeyLog.info("[PIPE]", "Start");
         BufferedReader reader = new BufferedReader(new FileReader(file), bufferSize);
         long nread = 0L;
-        for (String line = reader.readLine(); line != null; line = reader.readLine()) {
-            nread += line.length();
-            sink.write(line);
-            sink.write("\r\n");
+        char[] buffer = new char[DISK_TO_NETWORK_BUFFER_SIZE];
+        int n;
+        while ((n = reader.read(buffer)) > 0) {
+            sink.write(buffer, 0, n);
+            nread += n;
         }
         HockeyLog.info("[PIPE]", "End");
         return nread;
