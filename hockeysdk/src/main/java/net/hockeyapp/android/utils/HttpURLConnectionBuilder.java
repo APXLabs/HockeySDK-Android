@@ -1,13 +1,16 @@
 package net.hockeyapp.android.utils;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.Uri;
+import android.os.Looper;
 import android.text.TextUtils;
 
 import net.hockeyapp.android.Constants;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -33,6 +36,7 @@ public class HttpURLConnectionBuilder {
     public static final String DEFAULT_CHARSET = "UTF-8";
     public static final long FORM_FIELD_LIMIT = 4 * 1024 * 1024;
     public static final int FIELDS_LIMIT = 25;
+    public static final int DISK_TO_NETWORK_BUFFER_SIZE = 8*1024*1024; //8KB
 
     private final String mUrlString;
 
@@ -40,7 +44,7 @@ public class HttpURLConnectionBuilder {
     private String mRequestBody;
     private SimpleMultipartEntity mMultipartEntity;
     private int mTimeout = DEFAULT_TIMEOUT;
-
+    private File requestBodyDescription;
     private final Map<String, String> mHeaders;
 
     public HttpURLConnectionBuilder(String urlString) {
@@ -60,7 +64,11 @@ public class HttpURLConnectionBuilder {
     }
 
     public HttpURLConnectionBuilder writeFormFields(Map<String, String> fields) {
+        return writeFormFields(fields, null);
+    }
 
+    public HttpURLConnectionBuilder writeFormFields(Map<String, String> fields, File requestBodyDescription) {
+        this.requestBodyDescription = requestBodyDescription;
         // We should add limit on fields because a large number of fields can throw the OOM exception
         if (fields.size() > FIELDS_LIMIT) {
             throw new IllegalArgumentException("Fields size too large: " + fields.size() + " - max allowed: " + FIELDS_LIMIT);
@@ -152,10 +160,16 @@ public class HttpURLConnectionBuilder {
             connection.setRequestProperty(name, mHeaders.get(name));
         }
 
-        if (!TextUtils.isEmpty(mRequestBody)) {
+        if (!TextUtils.isEmpty(mRequestBody) || requestBodyDescription != null) {
             OutputStream outputStream = connection.getOutputStream();
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream, DEFAULT_CHARSET));
-            writer.write(mRequestBody);
+            if (!TextUtils.isEmpty(mRequestBody)) {
+                writer.write(mRequestBody);
+            }
+            if (requestBodyDescription != null) {
+                FileInputStream fileInputStream = new FileInputStream(requestBodyDescription);
+                pipe(fileInputStream, outputStream, DISK_TO_NETWORK_BUFFER_SIZE);
+            }
             writer.flush();
             writer.close();
         }
@@ -166,6 +180,23 @@ public class HttpURLConnectionBuilder {
         }
 
         return connection;
+    }
+
+    @SuppressLint("DefaultLocale")
+    public static long pipe(InputStream source, OutputStream sink, int bufferSize) throws IOException {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            throw new RuntimeException("piping streams can not be called from the main looper!");
+        }
+        long nread = 0L;
+        byte[] buf = new byte[bufferSize];
+        int n;
+        HockeyLog.info("[PIPE]", "Start");
+        while ((n = source.read(buf)) > 0) {
+            sink.write(buf, 0, n);
+            nread += n;
+        }
+        HockeyLog.info("[PIPE]", "End");
+        return nread;
     }
 
     private static String getFormString(Map<String, String> params, String charset) throws UnsupportedEncodingException {

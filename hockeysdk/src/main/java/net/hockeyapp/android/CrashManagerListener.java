@@ -1,5 +1,7 @@
 package net.hockeyapp.android;
 
+import java.io.File;
+
 /**
  * <h3>Description</h3>
  *
@@ -68,6 +70,14 @@ public abstract class CrashManagerListener {
     public String getDescription() {
         return null;
     }
+
+    /**
+     * Return additional data, i.e. parts of the system log, the last server
+     * response or similar. This string is not limited to a certain size.
+     *
+     * @return a file with the log data inside
+     */
+    public File getDescriptionFile() { return null; }
 
     /**
      * Return a user ID or similar; note that this has privacy implications,

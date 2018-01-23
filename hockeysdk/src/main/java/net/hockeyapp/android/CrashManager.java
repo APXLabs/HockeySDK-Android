@@ -445,7 +445,7 @@ public class CrashManager {
 
                 urlConnection = new HttpURLConnectionBuilder(getURLString())
                         .setRequestMethod("POST")
-                        .writeFormFields(parameters)
+                        .writeFormFields(parameters, listener.getDescriptionFile())
                         .build();
 
                 int responseCode = urlConnection.getResponseCode();
