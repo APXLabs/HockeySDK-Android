@@ -172,7 +172,7 @@ public class HttpURLConnectionBuilder {
                             delegate.setAccessible(true);
                             ((HttpsURLConnection)delegate.get(httpsURLConnection)).setFixedLengthStreamingMode(size);
                         } catch (Exception e) {
-                            Log.e("HOCKEYAPP", "Failed to set length of stream")
+                            Log.e("HOCKEYAPP", "Failed to set length of stream");
                         }
                     }
                 } else {
