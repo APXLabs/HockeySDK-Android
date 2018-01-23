@@ -8,9 +8,10 @@ import android.text.TextUtils;
 
 import net.hockeyapp.android.Constants;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -167,8 +168,7 @@ public class HttpURLConnectionBuilder {
                 writer.write(mRequestBody);
             }
             if (requestBodyDescription != null) {
-                FileInputStream fileInputStream = new FileInputStream(requestBodyDescription);
-                pipe(fileInputStream, outputStream, DISK_TO_NETWORK_BUFFER_SIZE);
+                pipe(requestBodyDescription, writer, DISK_TO_NETWORK_BUFFER_SIZE);
             }
             writer.flush();
             writer.close();
@@ -183,17 +183,18 @@ public class HttpURLConnectionBuilder {
     }
 
     @SuppressLint("DefaultLocale")
-    public static long pipe(InputStream source, OutputStream sink, int bufferSize) throws IOException {
+    public static long pipe(File file, BufferedWriter sink, int bufferSize) throws IOException {
         if (Looper.myLooper() == Looper.getMainLooper()) {
             throw new RuntimeException("piping streams can not be called from the main looper!");
         }
-        long nread = 0L;
-        byte[] buf = new byte[bufferSize];
-        int n;
+
         HockeyLog.info("[PIPE]", "Start");
-        while ((n = source.read(buf)) > 0) {
-            sink.write(buf, 0, n);
-            nread += n;
+        BufferedReader reader = new BufferedReader(new FileReader(file), bufferSize);
+        long nread = 0L;
+        for (String line = reader.readLine(); line != null; line = reader.readLine()) {
+            nread += line.length();
+            sink.write(line);
+            sink.write("\r\n");
         }
         HockeyLog.info("[PIPE]", "End");
         return nread;
